@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PSX Step-Up SIP Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #07090f;
+  --surface: #0f1520;
+  --surface2: #161e2e;
+  --surface3: #1c2840;
+  --border: #1e2d45;
+  --accent: #00d4aa;
+  --accent2: #f59e0b;
+  --accent3: #a78bfa;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --cons: #60a5fa;
+  --base: #00d4aa;
+  --agg: #f59e0b;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; padding: 24px 16px 60px; }
+.container { max-width: 1000px; margin: 0 auto; }
+
+.header { text-align: center; margin-bottom: 32px; }
+.header::before { content:''; display:block; width:80px; height:3px; background:linear-gradient(90deg,var(--accent),var(--accent3)); margin:0 auto 18px; border-radius:2px; }
+.tag { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--accent); letter-spacing:4px; text-transform:uppercase; margin-bottom:10px; }
+h1 { font-size:clamp(22px,5vw,36px); font-weight:800; line-height:1.1; }
+h1 span { color:var(--accent); }
+.subtitle { color:var(--muted); font-size:13px; margin-top:8px; }
+
+.tabs { display:flex; gap:4px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:4px; margin-bottom:22px; overflow-x:auto; scrollbar-width:none; }
+.tabs::-webkit-scrollbar { display:none; }
+.tab { flex:1; min-width:90px; padding:8px 12px; border:none; background:none; color:var(--muted); font-family:'Syne',sans-serif; font-size:11px; font-weight:600; cursor:pointer; border-radius:8px; transition:all 0.2s; white-space:nowrap; }
+.tab.active { background:var(--surface3); color:var(--accent); }
+.tab:hover:not(.active) { color:var(--text); }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+
+.inputs-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(165px,1fr)); gap:13px; background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:18px; }
+.field label { display:block; font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+.field input, .field select { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:500; outline:none; transition:border-color 0.2s; }
+.field input:focus, .field select:focus { border-color:var(--accent); }
+.hint { font-size:10px; color:var(--muted); margin-top:4px; font-family:'JetBrains Mono',monospace; }
+
+.calc-btn { display:block; width:100%; background:linear-gradient(135deg,var(--accent),#00b894); color:#07090f; border:none; border-radius:10px; padding:13px; font-family:'Syne',sans-serif; font-size:14px; font-weight:800; letter-spacing:1px; cursor:pointer; transition:opacity 0.2s,transform 0.1s; margin-bottom:26px; text-transform:uppercase; }
+.calc-btn:hover { opacity:0.9; transform:translateY(-1px); }
+
+.section-title { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--accent); font-family:'JetBrains Mono',monospace; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:11px; margin-bottom:20px; }
+.kpi { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:15px 16px; position:relative; overflow:hidden; }
+.kpi::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:var(--kpi-color,var(--accent)); }
+.kpi-label { font-size:9px; font-family:'JetBrains Mono',monospace; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+.kpi-value { font-size:19px; font-weight:800; color:var(--kpi-color,var(--accent)); line-height:1; }
+.kpi-sub { font-size:9px; color:var(--muted); margin-top:5px; font-family:'JetBrains Mono',monospace; }
+
+.charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px; }
+@media(max-width:640px) { .charts-grid { grid-template-columns:1fr; } }
+.chart-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px; }
+.chart-card.full { grid-column:1/-1; }
+.chart-title { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; }
+.chart-wrap { position:relative; height:200px; }
+.chart-wrap.tall { height:250px; }
+
+.scenarios { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+@media(max-width:560px) { .scenarios { grid-template-columns:1fr; } }
+.scenario-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; text-align:center; }
+.scenario-card.cons { border-top:3px solid var(--cons); }
+.scenario-card.base { border-top:3px solid var(--base); }
+.scenario-card.agg  { border-top:3px solid var(--agg); }
+.sc-label { font-size:9px; letter-spacing:2px; text-transform:uppercase; font-family:'JetBrains Mono',monospace; margin-bottom:3px; }
+.sc-rate  { font-size:12px; font-weight:700; margin-bottom:10px; }
+.sc-val   { font-size:18px; font-weight:800; }
+.sc-sub   { font-size:10px; color:var(--muted); margin-top:4px; font-family:'JetBrains Mono',monospace; }
+.sc-gain  { font-size:11px; font-weight:600; margin-top:3px; }
+.bar-wrap { background:var(--border); border-radius:4px; height:5px; margin-top:8px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:4px; transition:width 0.7s ease; }
+
+.table-wrap { overflow-x:auto; margin-bottom:22px; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+thead th { background:var(--surface2); color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:9px; text-transform:uppercase; letter-spacing:1px; padding:9px 10px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap; }
+thead th:first-child { text-align:left; }
+tbody tr { border-bottom:1px solid var(--border); transition:background 0.15s; }
+tbody tr:hover { background:var(--surface2); }
+tbody td { padding:9px 10px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:11px; white-space:nowrap; }
+tbody td:first-child { text-align:left; font-weight:600; }
+.gain-cell { color:var(--accent); }
+.total-cell { color:var(--accent2); font-weight:700; }
+.real-cell { color:#f87171; }
+
+.inflation-box { background:rgba(245,158,11,0.07); border:1px solid rgba(245,158,11,0.25); border-radius:12px; padding:15px 17px; margin-bottom:20px; }
+.inf-title { font-size:11px; font-weight:700; color:var(--accent2); margin-bottom:6px; }
+.inf-text { font-size:11px; color:var(--muted); line-height:1.8; font-family:'JetBrains Mono',monospace; white-space:pre; }
+
+.formula-box { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent3); border-radius:12px; padding:17px 20px; margin-bottom:20px; }
+.formula-box h3 { font-size:10px; letter-spacing:2px; color:var(--accent3); text-transform:uppercase; margin-bottom:11px; font-family:'JetBrains Mono',monospace; }
+.formula { font-family:'JetBrains Mono',monospace; font-size:11px; color:#a5b4fc; margin-bottom:5px; line-height:1.8; }
+
+.divider { border:none; border-top:1px solid var(--border); margin:22px 0; }
+
+.goal-result, .fire-result { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px; margin-top:14px; display:none; }
+.goal-highlight { font-size:28px; font-weight:800; color:var(--accent); margin:8px 0 12px; }
+.goal-meta, .fire-meta { font-size:11px; color:var(--muted); font-family:'JetBrains Mono',monospace; line-height:2; white-space:pre; }
+.fire-number { font-size:30px; font-weight:800; color:var(--accent); margin:6px 0 12px; }
+.fire-label  { font-size:9px; letter-spacing:2px; text-transform:uppercase; font-family:'JetBrains Mono',monospace; color:var(--muted); }
+
+.comp-rows { display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
+.comp-row { display:grid; grid-template-columns:1.2fr 1fr 0.8fr 0.8fr auto; gap:10px; align-items:end; }
+@media(max-width:520px) { .comp-row { grid-template-columns:1fr 1fr; } }
+.rm-btn { background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#ef4444; border-radius:8px; padding:9px 12px; cursor:pointer; font-size:12px; height:38px; align-self:end; }
+.add-btn { background:rgba(0,212,170,0.1); border:1px solid rgba(0,212,170,0.3); color:var(--accent); border-radius:8px; padding:9px 16px; cursor:pointer; font-family:'Syne',sans-serif; font-size:13px; font-weight:600; }
+.comp-result { display:none; }
+.comp-cards-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:11px; margin-bottom:14px; }
+.comp-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; text-align:center; }
+
+.export-row { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+.export-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:9px 16px; cursor:pointer; font-family:'Syne',sans-serif; font-size:12px; font-weight:600; transition:border-color 0.2s; }
+.export-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+.placeholder { color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:12px; padding:40px; text-align:center; }
+
+#results { display:none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <div class="tag">Pakistan Stock Exchange</div>
+  <h1>Step-Up <span>SIP</span> Calculator</h1>
+  <p class="subtitle">Charts · Scenarios · Goal Planner · FIRE · Strategy Comparison</p>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('calculator',this)">📊 Calculator</button>
+  <button class="tab" onclick="switchTab('charts',this)">📈 Charts</button>
+  <button class="tab" onclick="switchTab('scenarios',this)">🎯 Scenarios</button>
+  <button class="tab" onclick="switchTab('goal',this)">🏁 Goal Planner</button>
+  <button class="tab" onclick="switchTab('fire',this)">🔥 FIRE</button>
+  <button class="tab" onclick="switchTab('compare',this)">⚖️ Compare SIPs</button>
+  <button class="tab" onclick="switchTab('formulas',this)">📐 Formulas</button>
+</div>
+
+<!-- CALCULATOR -->
+<div class="tab-panel active" id="tab-calculator">
+  <div class="inputs-grid">
+    <div class="field">
+      <label>Monthly Investment (Rs.)</label>
+      <input type="number" id="monthly" value="10000" min="1">
+      <div class="hint">Starting monthly amount</div>
+    </div>
+    <div class="field">
+      <label>Expected Annual Return (%)</label>
+      <input type="number" id="rate" value="18" min="1" step="0.5">
+      <div class="hint">Base case CAGR</div>
+    </div>
+    <div class="field">
+      <label>Investment Duration (Years)</label>
+      <input type="number" id="years" value="10" min="1" max="40">
+      <div class="hint">Total investment horizon</div>
+    </div>
+    <div class="field">
+      <label>Annual Step-Up (%)</label>
+      <input type="number" id="stepup" value="10" min="0" step="0.5">
+      <div class="hint">Yearly SIP increase</div>
+    </div>
+    <div class="field">
+      <label>Inflation Rate (%)</label>
+      <input type="number" id="inflation" value="12" min="0" step="0.5">
+      <div class="hint">Pakistan avg ~12%</div>
+    </div>
+  </div>
+  <button class="calc-btn" onclick="calculate()">▶ Calculate Returns</button>
+
+  <div id="results">
+    <div class="section-title">Summary — Base Case</div>
+    <div class="kpi-grid" id="kpi-grid"></div>
+
+    <div class="inflation-box">
+      <div class="inf-title">🔥 Inflation-Adjusted Value</div>
+      <div class="inf-text" id="inflation-text"></div>
+    </div>
+
+    <div class="export-row">
+      <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="export-btn" onclick="goTab('charts')">📈 View Charts</button>
+      <button class="export-btn" onclick="goTab('scenarios')">🎯 Scenarios</button>
+    </div>
+
+    <div class="section-title">Year-by-Year Breakdown</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>Monthly SIP</th>
+            <th>Invested This Yr</th>
+            <th>Cumul. Invested</th>
+            <th>Portfolio Value</th>
+            <th>Gain This Year</th>
+            <th>Total Gains</th>
+            <th>Gain %</th>
+            <th>Real Value</th>
+          </tr>
+        </thead>
+        <tbody id="year-table"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- CHARTS -->
+<div class="tab-panel" id="tab-charts">
+  <div class="placeholder" id="charts-ph">Run the calculator first to see charts.</div>
+  <div id="charts-content" style="display:none">
+    <div class="charts-grid">
+      <div class="chart-card full">
+        <div class="chart-title">Portfolio Growth — Invested vs Total Value vs Real Value</div>
+        <div class="chart-wrap tall"><canvas id="growthChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Stacked: Invested + Gains Each Year</div>
+        <div class="chart-wrap"><canvas id="stackedChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Final Portfolio Composition</div>
+        <div class="chart-wrap"><canvas id="donutChart"></canvas></div>
+      </div>
+      <div class="chart-card full">
+        <div class="chart-title">3-Scenario Portfolio Growth (Conservative / Base / Aggressive)</div>
+        <div class="chart-wrap tall"><canvas id="scenarioChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Monthly SIP Growth (Step-Up Effect)</div>
+        <div class="chart-wrap"><canvas id="sipChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Annual Gain % on Invested Capital</div>
+        <div class="chart-wrap"><canvas id="gainPctChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCENARIOS -->
+<div class="tab-panel" id="tab-scenarios">
+  <div class="placeholder" id="scenarios-ph">Run the calculator first.</div>
+  <div id="scenarios-content" style="display:none">
+    <div class="section-title">3-Scenario Summary (Base ± 3%)</div>
+    <div class="scenarios" id="scenarios"></div>
+    <div class="section-title">Side-by-Side Year Breakdown</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th style="color:var(--cons)">Cons. Value</th>
+            <th style="color:var(--cons)">Cons. Gains</th>
+            <th style="color:var(--base)">Base Value</th>
+            <th style="color:var(--base)">Base Gains</th>
+            <th style="color:var(--agg)">Agg. Value</th>
+            <th style="color:var(--agg)">Agg. Gains</th>
+          </tr>
+        </thead>
+        <tbody id="scenario-table"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- GOAL PLANNER -->
+<div class="tab-panel" id="tab-goal">
+  <div style="color:var(--muted);font-size:12px;margin-bottom:18px;font-family:'JetBrains Mono',monospace;line-height:1.8;">Enter a target wealth amount. The planner reverse-engineers the required starting monthly SIP using binary search.</div>
+  <div class="inputs-grid">
+    <div class="field">
+      <label>Target Amount (Rs.)</label>
+      <input type="number" id="g-target" value="10000000" min="1">
+      <div class="hint">1 Crore = 10,000,000</div>
+    </div>
+    <div class="field">
+      <label>Annual Return (%)</label>
+      <input type="number" id="g-rate" value="18" step="0.5">
+    </div>
+    <div class="field">
+      <label>Duration (Years)</label>
+      <input type="number" id="g-years" value="10" min="1" max="40">
+    </div>
+    <div class="field">
+      <label>Annual Step-Up (%)</label>
+      <input type="number" id="g-stepup" value="10" min="0" step="0.5">
+    </div>
+    <div class="field">
+      <label>Inflation Rate (%)</label>
+      <input type="number" id="g-inflation" value="12" step="0.5">
+    </div>
+  </div>
+  <button class="calc-btn" onclick="calcGoal()">▶ Find Required Monthly SIP</button>
+  <div class="goal-result" id="goal-result">
+    <div class="inf-title">Required Starting Monthly SIP</div>
+    <div class="goal-highlight" id="goal-sip-val"></div>
+    <div class="goal-meta" id="goal-meta"></div>
+  </div>
+</div>
+
+<!-- FIRE -->
+<div class="tab-panel" id="tab-fire">
+  <div style="color:var(--muted);font-size:12px;margin-bottom:18px;font-family:'JetBrains Mono',monospace;line-height:1.8;">Financial Independence, Retire Early calculator. Uses the safe withdrawal rate to find your FIRE corpus target.</div>
+  <div class="inputs-grid">
+    <div class="field">
+      <label>Monthly Expenses (Rs.)</label>
+      <input type="number" id="f-expenses" value="100000" min="1">
+      <div class="hint">Current monthly spend</div>
+    </div>
+    <div class="field">
+      <label>Inflation Rate (%)</label>
+      <input type="number" id="f-inflation" value="12" step="0.5">
+      <div class="hint">Projects future expenses</div>
+    </div>
+    <div class="field">
+      <label>Years to Retirement</label>
+      <input type="number" id="f-years" value="20" min="1" max="50">
+    </div>
+    <div class="field">
+      <label>Post-Retirement Return (%)</label>
+      <input type="number" id="f-return" value="12" step="0.5">
+      <div class="hint">Conservative income return</div>
+    </div>
+    <div class="field">
+      <label>Withdrawal Rate (%)</label>
+      <input type="number" id="f-withdrawal" value="4" step="0.5">
+      <div class="hint">4% = standard FIRE rule</div>
+    </div>
+  </div>
+  <button class="calc-btn" onclick="calcFIRE()">▶ Calculate FIRE Number</button>
+  <div class="fire-result" id="fire-result">
+    <div class="fire-label">Your FIRE Corpus Target</div>
+    <div class="fire-number" id="fire-number"></div>
+    <div class="fire-meta" id="fire-meta"></div>
+  </div>
+</div>
+
+<!-- COMPARE -->
+<div class="tab-panel" id="tab-compare">
+  <div style="color:var(--muted);font-size:12px;margin-bottom:18px;font-family:'JetBrains Mono',monospace;line-height:1.8;">Compare multiple SIP strategies side by side. Great for flat SIP vs step-up analysis.</div>
+  <div class="comp-rows" id="comp-rows">
+    <div class="comp-row">
+      <div class="field"><label>Label</label><input type="text" value="Flat SIP" class="c-label"></div>
+      <div class="field"><label>Monthly (Rs.)</label><input type="number" value="10000" class="c-monthly"></div>
+      <div class="field"><label>Return %</label><input type="number" value="18" step="0.5" class="c-rate"></div>
+      <div class="field"><label>Step-Up %</label><input type="number" value="0" class="c-stepup"></div>
+    </div>
+    <div class="comp-row">
+      <div class="field"><label>Label</label><input type="text" value="10% Step-Up" class="c-label"></div>
+      <div class="field"><label>Monthly (Rs.)</label><input type="number" value="10000" class="c-monthly"></div>
+      <div class="field"><label>Return %</label><input type="number" value="18" step="0.5" class="c-rate"></div>
+      <div class="field"><label>Step-Up %</label><input type="number" value="10" class="c-stepup"></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:14px;align-items:flex-end;flex-wrap:wrap;">
+    <button class="add-btn" onclick="addCompRow()">+ Add Strategy</button>
+    <div class="field" style="flex:1;min-width:120px;"><label>Duration (Years)</label><input type="number" id="c-years" value="10" min="1" max="40"></div>
+    <div class="field" style="flex:1;min-width:120px;"><label>Inflation (%)</label><input type="number" id="c-inflation" value="12" step="0.5"></div>
+  </div>
+  <button class="calc-btn" onclick="compareCalc()">▶ Compare Strategies</button>
+  <div class="comp-result" id="comp-result">
+    <div class="section-title">Comparison Results</div>
+    <div class="comp-cards-grid" id="comp-cards"></div>
+    <div class="chart-card">
+      <div class="chart-title">Strategy Portfolio Growth Over Time</div>
+      <div class="chart-wrap tall"><canvas id="compChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- FORMULAS -->
+<div class="tab-panel" id="tab-formulas">
+  <div class="formula-box">
+    <h3>Core SIP Formulas</h3>
+    <div class="formula">1. Monthly Rate:    r = (1 + R_annual)^(1/12) − 1</div>
+    <div class="formula">2. Step-Up SIP:     PMT_y = PMT_1 × (1 + g)^(y−1)    [g = annual step-up]</div>
+    <div class="formula">3. Monthly engine:  Portfolio_t = (Portfolio_t-1 + PMT) × (1 + r)</div>
+    <div class="formula">4. Total Invested:  Σ [ PMT_1 × (1+g)^(y−1) × 12 ]   for y = 1 … N</div>
+    <div class="formula">5. Total Gains:     Portfolio_final − Total Invested</div>
+    <div class="formula">6. Real Value:      FV_real = FV_nominal / (1 + π)^N   [π = inflation]</div>
+    <div class="formula">7. Wealth Mult:     WM = FV_nominal / Total Invested</div>
+    <div class="formula">8. Effective CAGR:  (FV / Invested)^(1/N) − 1</div>
+  </div>
+  <div class="formula-box" style="border-left-color:var(--accent2)">
+    <h3 style="color:var(--accent2)">Goal Planner</h3>
+    <div class="formula">Binary search on PMT_1 so that Step-Up SIP FV equals Target</div>
+    <div class="formula">Convergence: Rs. 1 precision · max 200 iterations</div>
+    <div class="formula">Range: lo=Rs.1, hi=Target (self-bounding upper limit)</div>
+  </div>
+  <div class="formula-box" style="border-left-color:#f87171">
+    <h3 style="color:#f87171">FIRE Number</h3>
+    <div class="formula">Future monthly expenses  = Monthly × (1 + π)^N</div>
+    <div class="formula">Future annual expenses   = Future monthly × 12</div>
+    <div class="formula">FIRE Number (nominal)    = Annual expenses / Withdrawal rate</div>
+    <div class="formula">FIRE Number (real)       = Nominal / (1 + π)^N</div>
+    <div class="formula">Sustainable income/yr    = FIRE Number × Post-retirement return</div>
+  </div>
+  <div class="formula-box" style="border-left-color:var(--accent3)">
+    <h3 style="color:var(--accent3)">Key Assumptions</h3>
+    <div class="formula">• SIP invested at END of each month (ordinary annuity)</div>
+    <div class="formula">• Annual return converted to geometric monthly equivalent</div>
+    <div class="formula">• Step-up applied at start of each calendar year</div>
+    <div class="formula">• Inflation compounds annually on the final nominal corpus</div>
+    <div class="formula">• Pre-tax returns shown — no CGT or withholding tax deducted</div>
+    <div class="formula">• Suitable for PSX KMI-30 / Equity MF / Shariah-compliant context</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ── Globals
+let G = {};
+let CH = {};
+
+// ── Helpers
+const fmt  = n => Math.round(n).toLocaleString('en-PK');
+const fmtC = n => n>=1e7 ? (n/1e7).toFixed(2)+' Cr' : n>=1e5 ? (n/1e5).toFixed(2)+' Lac' : fmt(n);
+const pct  = n => n.toFixed(1)+'%';
+const killChart = id => { if(CH[id]){ CH[id].destroy(); delete CH[id]; } };
+const COLORS = ['#00d4aa','#60a5fa','#f59e0b','#a78bfa','#f87171','#34d399','#fb923c','#e879f9'];
+const GRID = 'rgba(30,45,69,0.7)';
+const TICK = { color:'#64748b', font:{size:10,family:'JetBrains Mono'} };
+const fmtAx = v => v>=1e7?(v/1e7).toFixed(1)+'Cr':v>=1e5?(v/1e5).toFixed(0)+'L':fmt(v);
+
+function baseOpts(yCallback) {
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ labels:{ color:'#94a3b8', font:{size:11,family:'JetBrains Mono'}, boxWidth:12 } } },
+    scales:{
+      x:{ grid:{color:GRID}, ticks:TICK },
+      y:{ grid:{color:GRID}, ticks:{ ...TICK, callback: yCallback||fmtAx } }
+    }
+  };
+}
+
+// ── Core calc engine
+function calcSIP(monthly, annualRate, years, stepUpPct, inflationPct) {
+  const r = Math.pow(1+annualRate/100, 1/12) - 1;
+  const su = stepUpPct/100, inf = inflationPct/100;
+  let port=0, inv=0, prevGains=0;
+  const yd=[];
+  for(let y=1;y<=years;y++){
+    const sip = monthly * Math.pow(1+su, y-1);
+    let yinv=0;
+    for(let m=0;m<12;m++){ port=(port+sip)*(1+r); yinv+=sip; }
+    inv += yinv;
+    const gains = port - inv;
+    const yearGains = Math.round(gains - prevGains);
+    prevGains = gains;
+    yd.push({
+      year:y, monthlySIP:sip, yearInvested:yinv,
+      totalInvested:inv, portfolio:Math.round(port),
+      gains:Math.round(gains), yearGains,
+      gainsPct: inv>0 ? (gains/inv)*100 : 0,
+      realVal: Math.round(port/Math.pow(1+inf,y))
+    });
+  }
+  return {
+    finalValue:Math.round(port),
+    totalInvested:Math.round(inv),
+    realValue:Math.round(port/Math.pow(1+inf,years)),
+    r, yearData:yd
+  };
+}
+
+function calcCAGR(inv, fv, yrs){ return (Math.pow(fv/inv,1/yrs)-1)*100; }
+
+// ── Tab nav
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+}
+function goTab(id) {
+  switchTab(id, document.querySelector(`.tab[onclick*="${id}"]`));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── Main Calculate
+function calculate() {
+  const monthly   = parseFloat(document.getElementById('monthly').value)||0;
+  const rate      = parseFloat(document.getElementById('rate').value)||0;
+  const years     = parseInt(document.getElementById('years').value)||0;
+  const stepup    = parseFloat(document.getElementById('stepup').value)||0;
+  const inflation = parseFloat(document.getElementById('inflation').value)||12;
+  if(!monthly||!rate||!years) return;
+
+  const base = calcSIP(monthly, rate, years, stepup, inflation);
+  const cons = calcSIP(monthly, Math.max(1,rate-3), years, stepup, inflation);
+  const agg  = calcSIP(monthly, rate+3, years, stepup, inflation);
+  G = {monthly, rate, years, stepup, inflation, base, cons, agg};
+
+  document.getElementById('results').style.display='block';
+
+  // KPIs
+  const gains = base.finalValue - base.totalInvested;
+  const wm    = base.finalValue / base.totalInvested;
+  const cagr  = calcCAGR(base.totalInvested, base.finalValue, years);
+  const finalSIP = monthly * Math.pow(1+stepup/100, years-1);
+
+  document.getElementById('kpi-grid').innerHTML = [
+    {label:'Total Invested',       value:'Rs. '+fmt(base.totalInvested),    color:'#60a5fa', sub:`${years} yrs · ${stepup}% step-up/yr`},
+    {label:'Portfolio Value',      value:'Rs. '+fmt(base.finalValue),       color:'#00d4aa', sub:`At ${rate}% annual return`},
+    {label:'Total Gains',          value:'Rs. '+fmt(gains),                 color:'#f59e0b', sub:pct(gains/base.totalInvested*100)+' on capital'},
+    {label:'Monthly Rate (r)',     value:(base.r*100).toFixed(4)+'%',       color:'#a78bfa', sub:`(1+${rate}%)^(1/12)−1`},
+    {label:'Real Value (Infl-Adj)',value:'Rs. '+fmt(base.realValue),        color:'#f87171', sub:`After ${inflation}% inflation`},
+    {label:'Wealth Multiplier',    value:wm.toFixed(2)+'×',                color:'#34d399', sub:'Final ÷ Total invested'},
+    {label:'Effective CAGR',       value:pct(cagr),                         color:'#fb923c', sub:'Portfolio CAGR on invested'},
+    {label:'Final Monthly SIP',    value:'Rs. '+fmt(finalSIP),             color:'#e879f9', sub:`Year ${years} instalment`},
+  ].map(k=>`<div class="kpi" style="--kpi-color:${k.color}"><div class="kpi-label">${k.label}</div><div class="kpi-value">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
+
+  // Inflation
+  const factor = Math.pow(1+inflation/100, years);
+  document.getElementById('inflation-text').textContent =
+    `Nominal portfolio:    Rs. ${fmt(base.finalValue)}\nReal value (today):   Rs. ${fmt(base.realValue)}\n`+
+    `Inflation factor:     (1 + ${inflation}%)^${years} = ${factor.toFixed(2)}×\n`+
+    `Power eroded:         Rs. ${fmt(base.finalValue-base.realValue)} (${pct((1-base.realValue/base.finalValue)*100)} of nominal)`;
+
+  // Year table
+  document.getElementById('year-table').innerHTML = base.yearData.map(d=>`
+    <tr>
+      <td>Year ${d.year}</td>
+      <td>Rs. ${fmt(d.monthlySIP)}</td>
+      <td>Rs. ${fmt(d.yearInvested)}</td>
+      <td>Rs. ${fmt(d.totalInvested)}</td>
+      <td class="total-cell">Rs. ${fmt(d.portfolio)}</td>
+      <td class="gain-cell">Rs. ${fmt(d.yearGains)}</td>
+      <td class="gain-cell">Rs. ${fmt(d.gains)}</td>
+      <td class="gain-cell">${pct(d.gainsPct)}</td>
+      <td class="real-cell">Rs. ${fmt(d.realVal)}</td>
+    </tr>`).join('');
+
+  buildCharts();
+  buildScenarios();
+}
+
+// ── Charts
+function buildCharts() {
+  document.getElementById('charts-ph').style.display='none';
+  document.getElementById('charts-content').style.display='block';
+
+  const d = G.base.yearData;
+  const labels = d.map(r=>'Yr '+r.year);
+  const inv  = d.map(r=>r.totalInvested);
+  const port = d.map(r=>r.portfolio);
+  const gn   = d.map(r=>r.gains);
+  const real = d.map(r=>r.realVal);
+  const sips = d.map(r=>Math.round(r.monthlySIP));
+  const gpts = d.map(r=>parseFloat(r.gainsPct.toFixed(1)));
+
+  // Growth
+  killChart('g1');
+  CH.g1 = new Chart(document.getElementById('growthChart'),{
+    type:'line',
+    data:{labels, datasets:[
+      {label:'Portfolio Value', data:port, borderColor:'#00d4aa', backgroundColor:'rgba(0,212,170,0.07)', fill:true, tension:0.4, pointRadius:3},
+      {label:'Total Invested',  data:inv,  borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,0.05)', fill:true, tension:0.4, borderDash:[5,3], pointRadius:3},
+      {label:'Real Value',      data:real, borderColor:'#f87171', backgroundColor:'transparent', fill:false, tension:0.4, borderDash:[3,3], pointRadius:3},
+    ]},
+    options: baseOpts()
+  });
+
+  // Stacked
+  killChart('g2');
+  CH.g2 = new Chart(document.getElementById('stackedChart'),{
+    type:'bar',
+    data:{labels, datasets:[
+      {label:'Invested', data:inv, backgroundColor:'rgba(96,165,250,0.75)', stack:'s'},
+      {label:'Gains',    data:gn,  backgroundColor:'rgba(0,212,170,0.75)',  stack:'s'},
+    ]},
+    options:{...baseOpts(), scales:{
+      x:{grid:{color:GRID},ticks:TICK,stacked:true},
+      y:{grid:{color:GRID},ticks:{...TICK,callback:fmtAx},stacked:true}
+    }}
+  });
+
+  // Donut
+  killChart('g3');
+  const last=d[d.length-1];
+  CH.g3 = new Chart(document.getElementById('donutChart'),{
+    type:'doughnut',
+    data:{
+      labels:['Invested Capital','Investment Gains'],
+      datasets:[{data:[last.totalInvested,last.gains], backgroundColor:['#3b82f6','#00d4aa'], borderColor:'#07090f', borderWidth:3, hoverOffset:8}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{color:'#94a3b8',font:{size:11,family:'JetBrains Mono'},boxWidth:12}},
+        tooltip:{callbacks:{label:ctx=>' Rs.'+fmt(ctx.parsed)+' ('+pct(ctx.parsed/last.portfolio*100)+')'}}
+      }
+    }
+  });
+
+  // Scenario
+  killChart('g4');
+  CH.g4 = new Chart(document.getElementById('scenarioChart'),{
+    type:'line',
+    data:{labels, datasets:[
+      {label:`Conservative (${G.rate-3}%)`, data:G.cons.yearData.map(r=>r.portfolio), borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,0.04)', fill:true, tension:0.4},
+      {label:`Base (${G.rate}%)`,           data:port,                                 borderColor:'#00d4aa', backgroundColor:'rgba(0,212,170,0.04)',   fill:true, tension:0.4},
+      {label:`Aggressive (${G.rate+3}%)`,   data:G.agg.yearData.map(r=>r.portfolio),  borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,0.04)',  fill:true, tension:0.4},
+    ]},
+    options: baseOpts()
+  });
+
+  // SIP growth
+  killChart('g5');
+  CH.g5 = new Chart(document.getElementById('sipChart'),{
+    type:'bar',
+    data:{labels, datasets:[{label:'Monthly SIP (Rs.)', data:sips, backgroundColor:'rgba(167,139,250,0.75)', borderRadius:4}]},
+    options: baseOpts()
+  });
+
+  // Gain %
+  killChart('g6');
+  CH.g6 = new Chart(document.getElementById('gainPctChart'),{
+    type:'line',
+    data:{labels, datasets:[{label:'Gain % on Invested', data:gpts, borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,0.1)', fill:true, tension:0.4, pointRadius:3}]},
+    options: baseOpts(v=>v+'%')
+  });
+}
+
+// ── Scenarios
+function buildScenarios() {
+  document.getElementById('scenarios-ph').style.display='none';
+  document.getElementById('scenarios-content').style.display='block';
+
+  const {base,cons,agg,rate} = G;
+  const scens=[
+    {cls:'cons',label:'Conservative',r:rate-3,data:cons,color:'var(--cons)'},
+    {cls:'base',label:'Base Case',   r:rate,  data:base,color:'var(--base)'},
+    {cls:'agg', label:'Aggressive',  r:rate+3,data:agg, color:'var(--agg)'},
+  ];
+
+  document.getElementById('scenarios').innerHTML = scens.map(s=>`
+    <div class="scenario-card ${s.cls}">
+      <div class="sc-label" style="color:${s.color}">${s.label}</div>
+      <div class="sc-rate" style="color:${s.color}">${s.r}% / yr</div>
+      <div class="sc-val">Rs. ${fmt(s.data.finalValue)}</div>
+      <div class="sc-sub">${fmtC(s.data.finalValue)}</div>
+      <div class="sc-sub">Invested: Rs. ${fmt(s.data.totalInvested)}</div>
+      <div class="sc-gain" style="color:${s.color}">+Rs. ${fmt(s.data.finalValue-s.data.totalInvested)}</div>
+      <div class="sc-sub">Real: Rs. ${fmt(s.data.realValue)}</div>
+      <div class="sc-sub">${(s.data.finalValue/s.data.totalInvested).toFixed(2)}× wealth mult</div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${(s.data.finalValue/agg.finalValue*100).toFixed(1)}%;background:${s.color}"></div></div>
+    </div>`).join('');
+
+  document.getElementById('scenario-table').innerHTML = base.yearData.map((_,i)=>`
+    <tr>
+      <td>Year ${i+1}</td>
+      <td style="color:var(--cons)">Rs. ${fmt(cons.yearData[i].portfolio)}</td>
+      <td style="color:var(--cons)">Rs. ${fmt(cons.yearData[i].gains)}</td>
+      <td style="color:var(--base)">Rs. ${fmt(base.yearData[i].portfolio)}</td>
+      <td style="color:var(--base)">Rs. ${fmt(base.yearData[i].gains)}</td>
+      <td style="color:var(--agg)">Rs. ${fmt(agg.yearData[i].portfolio)}</td>
+      <td style="color:var(--agg)">Rs. ${fmt(agg.yearData[i].gains)}</td>
+    </tr>`).join('');
+}
+
+// ── Goal Planner
+function calcGoal() {
+  const target = parseFloat(document.getElementById('g-target').value);
+  const rate   = parseFloat(document.getElementById('g-rate').value);
+  const years  = parseInt(document.getElementById('g-years').value);
+  const stepup = parseFloat(document.getElementById('g-stepup').value);
+  const infl   = parseFloat(document.getElementById('g-inflation').value);
+  if(!target||!rate||!years) return;
+
+  let lo=1, hi=target, mid=0;
+  for(let i=0;i<250;i++){
+    mid=(lo+hi)/2;
+    const res=calcSIP(mid,rate,years,stepup,infl);
+    if(Math.abs(res.finalValue-target)<1) break;
+    if(res.finalValue<target) lo=mid; else hi=mid;
+  }
+  const req   = Math.ceil(mid);
+  const check = calcSIP(req, rate, years, stepup, infl);
+  const finalSIP = req * Math.pow(1+stepup/100, years-1);
+  const realT = target/Math.pow(1+infl/100, years);
+
+  document.getElementById('goal-result').style.display='block';
+  document.getElementById('goal-sip-val').textContent = `Rs. ${fmt(req)} / month`;
+  document.getElementById('goal-meta').textContent =
+    `Target corpus:           Rs. ${fmt(target)}  (${fmtC(target)})\n`+
+    `Real value of target:    Rs. ${fmt(realT)}  (today's purchasing power)\n`+
+    `Total you will invest:   Rs. ${fmt(check.totalInvested)}\n`+
+    `Gains needed:            Rs. ${fmt(target-check.totalInvested)}\n`+
+    `Final year monthly SIP:  Rs. ${fmt(finalSIP)}\n`+
+    `─────────────────────────────────────────\n`+
+    `Duration: ${years} yrs  |  Return: ${rate}%  |  Step-up: ${stepup}%  |  Inflation: ${infl}%`;
+}
+
+// ── FIRE
+function calcFIRE() {
+  const expenses  = parseFloat(document.getElementById('f-expenses').value);
+  const infl      = parseFloat(document.getElementById('f-inflation').value)/100;
+  const years     = parseInt(document.getElementById('f-years').value);
+  const retRet    = parseFloat(document.getElementById('f-return').value)/100;
+  const wdRate    = parseFloat(document.getElementById('f-withdrawal').value)/100;
+  if(!expenses||!years) return;
+
+  const futMo  = expenses * Math.pow(1+infl, years);
+  const futAnn = futMo * 12;
+  const fireN  = futAnn / wdRate;
+  const realF  = fireN / Math.pow(1+infl, years);
+  const annInc = fireN * retRet;
+
+  document.getElementById('fire-result').style.display='block';
+  document.getElementById('fire-number').textContent = `Rs. ${fmt(fireN)}  (${fmtC(fireN)})`;
+  document.getElementById('fire-meta').textContent =
+    `FIRE Number (nominal):       Rs. ${fmt(fireN)}\n`+
+    `FIRE Number (real / today):  Rs. ${fmt(realF)}  (${fmtC(realF)})\n`+
+    `─────────────────────────────────────────────────────\n`+
+    `Today's monthly expenses:    Rs. ${fmt(expenses)}\n`+
+    `Future monthly expenses:     Rs. ${fmt(futMo)}  (in ${years} yrs at ${(infl*100).toFixed(0)}%)\n`+
+    `Future annual expenses:      Rs. ${fmt(futAnn)}\n`+
+    `─────────────────────────────────────────────────────\n`+
+    `Safe withdrawal rate:        ${(wdRate*100).toFixed(1)}%\n`+
+    `Corpus sustains annually:    Rs. ${fmt(annInc)}  (at ${(retRet*100).toFixed(0)}% return)\n`+
+    `Monthly income from corpus:  Rs. ${fmt(annInc/12)}\n`+
+    `─────────────────────────────────────────────────────\n`+
+    `Tip: Copy FIRE Number into Goal Planner to find the\nrequired monthly SIP to reach it!`;
+}
+
+// ── Compare
+function addCompRow() {
+  const d=document.createElement('div');
+  d.className='comp-row';
+  d.innerHTML=`
+    <div class="field"><label>Label</label><input type="text" value="Strategy" class="c-label"></div>
+    <div class="field"><label>Monthly (Rs.)</label><input type="number" value="10000" class="c-monthly"></div>
+    <div class="field"><label>Return %</label><input type="number" value="18" step="0.5" class="c-rate"></div>
+    <div class="field"><label>Step-Up %</label><input type="number" value="0" class="c-stepup"></div>
+    <button class="rm-btn" onclick="this.parentElement.remove()">✕</button>`;
+  document.getElementById('comp-rows').appendChild(d);
+}
+
+function compareCalc() {
+  const yrs  = parseInt(document.getElementById('c-years').value)||10;
+  const infl = parseFloat(document.getElementById('c-inflation').value)||12;
+  const rows = document.querySelectorAll('.comp-row');
+  const strats = Array.from(rows).map(r=>({
+    label:   r.querySelector('.c-label').value||'Strategy',
+    monthly: parseFloat(r.querySelector('.c-monthly').value)||0,
+    rate:    parseFloat(r.querySelector('.c-rate').value)||0,
+    stepup:  parseFloat(r.querySelector('.c-stepup').value)||0,
+  })).filter(s=>s.monthly&&s.rate);
+  if(!strats.length) return;
+
+  const results = strats.map(s=>({...s, res:calcSIP(s.monthly,s.rate,yrs,s.stepup,infl)}));
+  const best = Math.max(...results.map(r=>r.res.finalValue));
+
+  document.getElementById('comp-result').style.display='block';
+  document.getElementById('comp-cards').innerHTML = results.map((s,i)=>{
+    const c=COLORS[i%COLORS.length];
+    const isBest = s.res.finalValue===best;
+    return `<div class="comp-card" style="border-top:3px solid ${c}${isBest?';border:1px solid '+c:''}">
+      <div style="font-size:9px;letter-spacing:1px;font-family:'JetBrains Mono',monospace;color:${c};text-transform:uppercase;margin-bottom:5px">${s.label}${isBest?' ★':''}</div>
+      <div style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace">Rs.${fmt(s.monthly)}/mo · ${s.rate}% · ${s.stepup}% step</div>
+      <div style="font-size:19px;font-weight:800;color:${c};margin:8px 0">Rs. ${fmt(s.res.finalValue)}</div>
+      <div style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace">Invested: Rs. ${fmt(s.res.totalInvested)}</div>
+      <div style="font-size:11px;font-weight:600;color:${c};margin-top:3px">+Rs. ${fmt(s.res.finalValue-s.res.totalInvested)}</div>
+      <div style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px">${(s.res.finalValue/s.res.totalInvested).toFixed(2)}× · Real: Rs.${fmt(s.res.realValue)}</div>
+    </div>`;
+  }).join('');
+
+  killChart('gc');
+  const labels = results[0].res.yearData.map(r=>'Yr '+r.year);
+  CH.gc = new Chart(document.getElementById('compChart'),{
+    type:'line',
+    data:{labels, datasets:results.map((s,i)=>({
+      label:`${s.label} (${s.rate}% / ${s.stepup}% step)`,
+      data:s.res.yearData.map(r=>r.portfolio),
+      borderColor:COLORS[i%COLORS.length],
+      backgroundColor:COLORS[i%COLORS.length]+'14',
+      fill:true, tension:0.4, pointRadius:3
+    }))},
+    options: baseOpts()
+  });
+}
+
+// ── Export CSV
+function exportCSV() {
+  if(!G.base) return;
+  const rows=[['Year','Monthly SIP','Invested This Year','Cumulative Invested','Portfolio Value','Total Gains','Gain %','Real Value']];
+  G.base.yearData.forEach(d=>{
+    rows.push([d.year,Math.round(d.monthlySIP),Math.round(d.yearInvested),d.totalInvested,d.portfolio,d.gains,d.gainsPct.toFixed(2)+'%',d.realVal]);
+  });
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`psx-sip-${G.monthly}-${G.rate}pct-${G.years}yrs.csv`;
+  a.click();
+}
+
+window.onload = calculate;
+</script>
+</body>
+</html>
