@@ -61,9 +61,19 @@ h1 span { color:var(--accent); }
   padding: 14px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.25);
 }
-.kpi::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:var(--kpi-color,var(--accent)); }
-.kpi-label { font-size:9px; font-family:'JetBrains Mono',monospace; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
-.kpi-value { font-size:19px; font-weight:800; color:var(--kpi-color,var(--accent)); line-height:1; }
+.kpi::after {
+  display: none;
+}
+.kpi-label {
+  font-size: 11px;
+  color: #9ca3af;
+  letter-spacing: 0.5px;
+}
+.kpi-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e5e7eb; /* clean white */
+}
 .kpi-sub { font-size:9px; color:var(--muted); margin-top:5px; font-family:'JetBrains Mono',monospace; }
 
 .charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px; }
