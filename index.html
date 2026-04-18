@@ -126,6 +126,53 @@ tbody td:first-child { text-align:left; font-weight:600; }
 .placeholder { color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:12px; padding:40px; text-align:center; }
 
 #results { display:none; }
+  #results { display:none; }
+
+/* 🔥 MOBILE OPTIMIZATION */
+@media (max-width: 480px) {
+
+  body { padding: 12px 10px 40px; }
+
+  h1 { font-size: 22px; }
+
+  .subtitle { font-size: 11px; }
+
+  .inputs-grid {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .kpi { padding: 12px; }
+
+  .kpi-value { font-size: 16px; }
+
+  .calc-btn {
+    font-size: 13px;
+    padding: 12px;
+  }
+
+  .charts-grid { grid-template-columns: 1fr; }
+
+  .chart-wrap { height: 180px; }
+
+  .chart-wrap.tall { height: 220px; }
+
+  .scenarios { grid-template-columns: 1fr; }
+
+  .comp-row { grid-template-columns: 1fr; }
+
+  table { font-size: 10px; }
+
+  .formula { font-size: 10px; }
+}
+
+/* ✅ better touch */
+button { min-height: 44px; }
 </style>
 </head>
 <body>
